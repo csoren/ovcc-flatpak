@@ -1,0 +1,61 @@
+app-id: dk.rift.ovcc
+runtime: org.gnome.Platform
+runtime-version: '44'
+sdk: org.gnome.Sdk
+command: ovcc
+finish-args:
+  - --device=all
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=x11
+  # Wayland access
+  - --socket=wayland
+  # Needs to talk to the network:
+  - --share=network
+  # Needs to save files locally
+  - --filesystem=xdg-documents
+  - --metadata=X-DConf=migrate-path=/org/gnome/dictionary/
+  - --socket=pulseaudio
+modules:
+  - "flathub-shared-modules/SDL2/SDL2-with-libdecor.json"
+
+  - name: agar
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://github.com/JulNadeauCA/libagar/archive/88abd5a41b211ac1154da4c6321df92d899c16e6.zip
+        sha256: 74fb0ee16a17e0456838a64d35626744d0b877d7f567f594a1e9a89cc75c76ca
+
+  - name: ovcc
+    buildsystem: simple
+    sources:
+      - type: archive
+        url: https://github.com/WallyZambotti/OVCC/archive/ef64be06181f9dde3108059f1ddb543b626bfc93.zip
+        sha256: 51c043a0f73634a01e3f62086061c8453c3963ee9499115a3cc94a10c96c5f63
+    build-commands:
+      - make -j;
+        cd CoCo;
+        rm obj/coco3.o obj/vcc.o obj/vccgui.o;
+        make -j -f Makefiles/Linux/makefile-isocpu;
+        cd ..;
+        mkdir -p ${FLATPAK_DEST}/share/ovcc;
+        mkdir -p ${FLATPAK_DEST}/share/ovcc/libs;
+        mkdir -p ${FLATPAK_DEST}/share/ovcc/roms;
+        mkdir -p ${FLATPAK_DEST}/share/ovcc/dsks;
+        mkdir -p ${FLATPAK_DEST}/share/ovcc/vhds;
+        cp CoCo/ovcc CoCo/ovcc-isocpu CoCo/Vcc.ini ${FLATPAK_DEST}/share/ovcc;
+        cp becker/libbecker.so mpi/libmpi.so mpu/libmpu.so orch90/liborch90.so HardDisk/libharddisk.so Ramdisk/libramdisk.so SuperIDE/libsuperide.so ${FLATPAK_DEST}/share/ovcc/libs;
+        touch ${FLATPAK_DEST}/share/ovcc/Vcc.ini;
+        echo >${FLATPAK_DEST}/bin/ovcc \#!/bin/sh;
+        echo >>${FLATPAK_DEST}/bin/ovcc cd /app/share/ovcc\; ./ovcc;
+        chmod +x ${FLATPAK_DEST}/bin/ovcc
+
+  - name: roms
+    buildsystem: simple
+    sources:
+      - type: archive
+        url: https://github.com/VCCE/VCC/releases/download/vcc2.1.0.7/VCC.2.1.0.7.Coco.3.Emulator.zip
+        sha256: 6b8820a9f4839e62c9a2b6b3b72b74395f2ba3e14502bd9782e66a5093c02c8c
+    build-commands:
+      - cp coco3.rom disk11.rom rgbdos.rom ${FLATPAK_DEST}/share/ovcc;
+        cp cyd_gmc.rom hdbdw3bc*.rom hdblba.rom orch90.rom ${FLATPAK_DEST}/share/ovcc/roms
